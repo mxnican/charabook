@@ -104,6 +104,7 @@ import {
   getPlotCardTypeList,
   movePlotCard,
 } from '../lib/plotEditModel'
+import { getPlotCardDragHoldDelay } from '../lib/plotDragBehavior'
 import { touchWorkUpdatedAt } from '../lib/workbookStore'
 
 const route = useRoute()
@@ -124,8 +125,11 @@ const dragState = reactive({
   cardId: '',
   overCardId: '',
   isDragging: false,
+  pointerType: '',
   startX: 0,
   startY: 0,
+  lastX: 0,
+  lastY: 0,
 })
 const dragPressTimer = ref(0)
 const cardRefs = new Map()
@@ -207,6 +211,9 @@ function resetDragState() {
   dragState.cardId = ''
   dragState.overCardId = ''
   dragState.isDragging = false
+  dragState.pointerType = ''
+  dragState.lastX = 0
+  dragState.lastY = 0
   menuOpenCardId.value = ''
 }
 
@@ -224,7 +231,26 @@ function getCardElementFromPoint(clientX, clientY) {
 }
 
 function moveCardToIndex(cardId, targetIndex) {
-  draft.cards = movePlotCard(draft.cards, cardId, targetIndex)
+  const nextCards = movePlotCard(draft.cards, cardId, targetIndex)
+  const orderChanged = nextCards.some((card, index) => card.id !== draft.cards[index]?.id)
+  if (!orderChanged) return false
+  draft.cards = nextCards
+  return true
+}
+
+function updateDragTarget(clientX, clientY) {
+  const targetCard = getCardElementFromPoint(clientX, clientY)
+  const targetId = targetCard?.dataset.cardId || ''
+  if (!targetId || targetId === dragState.cardId) return
+
+  const targetIndex = draft.cards.findIndex((card) => card.id === targetId)
+  if (targetIndex < 0) return
+
+  const changed = moveCardToIndex(dragState.cardId, targetIndex)
+  if (changed) {
+    dragState.overCardId = targetId
+    persistDraft()
+  }
 }
 
 function handleCardPointerDown(event, cardId) {
@@ -240,42 +266,43 @@ function handleCardPointerDown(event, cardId) {
   dragState.cardId = cardId
   dragState.overCardId = cardId
   dragState.isDragging = false
+  dragState.pointerType = event.pointerType || 'mouse'
   dragState.startX = event.clientX
   dragState.startY = event.clientY
+  dragState.lastX = event.clientX
+  dragState.lastY = event.clientY
+
+  const currentTarget = event.currentTarget
+  if (currentTarget instanceof HTMLElement && typeof currentTarget.setPointerCapture === 'function') {
+    currentTarget.setPointerCapture(event.pointerId)
+  }
 
   window.addEventListener('pointermove', handleWindowPointerMove)
   window.addEventListener('pointerup', handleWindowPointerUp)
   window.addEventListener('pointercancel', handleWindowPointerCancel)
 
-  dragPressTimer.value = window.setTimeout(() => {
-    if (dragState.pointerId === event.pointerId && dragState.cardId === cardId) {
-      startDragging(cardId)
-    }
-  }, 280)
+  const holdDelay = getPlotCardDragHoldDelay(dragState.pointerType)
+  if (holdDelay > 0) {
+    dragPressTimer.value = window.setTimeout(() => {
+      if (dragState.pointerId === event.pointerId && dragState.cardId === cardId) {
+        startDragging(cardId)
+        updateDragTarget(dragState.lastX, dragState.lastY)
+      }
+    }, holdDelay)
+  }
 }
 
 function handleWindowPointerMove(event) {
   if (event.pointerId !== dragState.pointerId) return
+  dragState.lastX = event.clientX
+  dragState.lastY = event.clientY
 
   if (!dragState.isDragging) {
-    const offsetX = Math.abs(event.clientX - dragState.startX)
-    const offsetY = Math.abs(event.clientY - dragState.startY)
-    if (Math.max(offsetX, offsetY) > 8) {
-      resetDragState()
-    }
     return
   }
 
   event.preventDefault()
-  const targetCard = getCardElementFromPoint(event.clientX, event.clientY)
-  const targetId = targetCard?.dataset.cardId || ''
-  if (!targetId || targetId === dragState.cardId) return
-
-  const targetIndex = draft.cards.findIndex((card) => card.id === targetId)
-  if (targetIndex < 0) return
-
-  moveCardToIndex(dragState.cardId, targetIndex)
-  dragState.overCardId = targetId
+  updateDragTarget(event.clientX, event.clientY)
 }
 
 function handleWindowPointerUp(event) {
@@ -386,8 +413,7 @@ function handleCardInput(cardId) {
   resizeCardHeight(cardId)
 }
 
-function saveDraft() {
-  resetDragState()
+function persistDraft({ syncRoute = false } = {}) {
   const summary = buildPlotBoardSummary(draft.cards)
   const saved = upsertPlotItem(currentWorkId(), {
     id: draft.id,
@@ -398,25 +424,36 @@ function saveDraft() {
     createdAt: draft.createdAt,
     updatedAt: new Date().toISOString().slice(0, 10),
   })
+
   draft.id = saved.id
   draft.kind = 'plot'
   draft.cards = extractPlotCardsFromItem(saved)
   draft.createdAt = saved.createdAt
   draft.updatedAt = saved.updatedAt
-  activeCardId.value = draft.cards[0]?.id || ''
   touchWorkUpdatedAt(currentWorkId())
   loaded.value = true
   markSaved()
+
+  if (syncRoute) {
+    router.replace({
+      name: 'plot-edit',
+      params: { id: saved.id },
+      query: { workId: currentWorkId() },
+    })
+  }
+
+  return saved
+}
+
+function saveDraft() {
+  resetDragState()
+  const saved = persistDraft({ syncRoute: true })
+  activeCardId.value = draft.cards[0]?.id || ''
   nextTick(() => {
     resizeAllCards()
     syncMenuState()
   })
-
-  router.replace({
-    name: 'plot-edit',
-    params: { id: saved.id },
-    query: { workId: currentWorkId() },
-  })
+  return saved
 }
 
 function goBack() {

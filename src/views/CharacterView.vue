@@ -258,6 +258,7 @@ const sidebarDrag = reactive({
   pointerType: '',
   armed: false,
   dragging: false,
+  hasMoved: false,
   suppressClick: false,
   overId: '',
   startY: 0,
@@ -418,6 +419,7 @@ function resetSidebarDragState() {
   sidebarDrag.pointerType = ''
   sidebarDrag.armed = false
   sidebarDrag.dragging = false
+  sidebarDrag.hasMoved = false
   sidebarDrag.overId = ''
   sidebarDrag.startY = 0
   sidebarDrag.lastY = 0
@@ -430,7 +432,7 @@ function saveSidebarOrder() {
 
 function moveCharacterBefore(activeId, beforeId) {
   const currentIndex = characters.value.findIndex((character) => character.id === activeId)
-  if (currentIndex < 0) return
+  if (currentIndex < 0) return false
 
   const next = characters.value.slice()
   const [moving] = next.splice(currentIndex, 1)
@@ -438,7 +440,12 @@ function moveCharacterBefore(activeId, beforeId) {
     ? next.findIndex((character) => character.id === beforeId)
     : next.length
   next.splice(targetIndex >= 0 ? targetIndex : next.length, 0, moving)
+
+  const orderChanged = next.some((character, index) => character.id !== characters.value[index]?.id)
+  if (!orderChanged) return false
+
   characters.value = next
+  return true
 }
 
 function updateSidebarDropTarget(clientY) {
@@ -469,6 +476,7 @@ function handleSidebarItemPointerDown(characterId, event) {
   sidebarDrag.pointerType = event.pointerType || ''
   sidebarDrag.armed = false
   sidebarDrag.dragging = false
+  sidebarDrag.hasMoved = false
   sidebarDrag.overId = ''
   sidebarDrag.startY = event.clientY
   sidebarDrag.lastY = event.clientY
@@ -480,49 +488,48 @@ function handleSidebarItemPointerDown(characterId, event) {
   }
 
   if (sidebarDrag.pointerType === 'mouse') {
+    sidebarDragTimer = window.setTimeout(() => {
+      sidebarDrag.armed = true
+    }, 260)
     return
   }
 
-  sidebarDragTimer = window.setTimeout(() => {
-    sidebarDrag.armed = true
-    sidebarDrag.dragging = true
-    sidebarDrag.suppressClick = true
-    updateSidebarDropTarget(sidebarDrag.lastY)
-  }, 420)
+  sidebarDrag.armed = true
+  sidebarDrag.dragging = true
+  updateSidebarDropTarget(sidebarDrag.lastY)
 }
 
 function handleSidebarDragPointerMove(event) {
   if (event.pointerId !== sidebarDrag.pointerId || !sidebarDrag.activeId) return
 
   sidebarDrag.lastY = event.clientY
+  const movedDistance = Math.abs(event.clientY - sidebarDrag.startY)
 
   if (!sidebarDrag.armed) {
-    const movedEnough = Math.abs(event.clientY - sidebarDrag.startY) > (sidebarDrag.pointerType === 'mouse' ? 4 : 8)
-
-    if (sidebarDrag.pointerType === 'mouse' && movedEnough) {
-      sidebarDrag.armed = true
-      sidebarDrag.dragging = true
-      sidebarDrag.suppressClick = true
-      updateSidebarDropTarget(event.clientY)
-      moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+    if (sidebarDrag.pointerType === 'mouse') {
       return
     }
 
-    if (sidebarDrag.pointerType !== 'mouse' && movedEnough) {
-      clearSidebarDragTimer()
-    }
-    return
+    sidebarDrag.armed = true
+    sidebarDrag.dragging = true
   }
 
+  sidebarDrag.dragging = true
+  if (movedDistance > 3) {
+    sidebarDrag.hasMoved = true
+    sidebarDrag.suppressClick = true
+  }
   updateSidebarDropTarget(event.clientY)
-  moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+  const changed = moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+  if (changed) {
+    sidebarDrag.hasMoved = true
+    sidebarDrag.suppressClick = true
+    saveSidebarOrder()
+  }
 }
 
-function finalizeSidebarDrag(commitOrder) {
-  const wasDragging = sidebarDrag.dragging || sidebarDrag.armed
-  if (commitOrder && wasDragging) {
-    saveSidebarOrder()
-    sidebarDrag.suppressClick = true
+function finalizeSidebarDrag() {
+  if (sidebarDrag.hasMoved) {
     scheduleSuppressClickReset()
   }
   resetSidebarDragState()
@@ -530,7 +537,7 @@ function finalizeSidebarDrag(commitOrder) {
 
 function handleSidebarDragPointerUp(event) {
   if (event.pointerId !== sidebarDrag.pointerId || !sidebarDrag.activeId) return
-  finalizeSidebarDrag(true)
+  finalizeSidebarDrag()
 }
 
 function handleSidebarItemClick(characterId) {

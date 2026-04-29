@@ -1,16 +1,33 @@
 :root {
   color-scheme: light;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --character-header-height: calc(76px + var(--safe-top));
   --cb-bg: #ffffff;
   --cb-bg-soft: #c7e6fd;
   --cb-accent-light: #a8c0fb;
-  --cb-accent: #85a8f6;
+  --cb-accent: #5f7fe5;
   --cb-text: #383940;
-  --ink: #24170f;
-  --muted: #7d6656;
-  --line: rgba(36, 23, 15, 0.12);
-  --accent: #9f5637;
-  --accent-strong: #71301c;
-  --shadow: 0 18px 50px rgba(72, 40, 23, 0.16);
+  --ink: #24335a;
+  --muted: #8d98ab;
+  --line: rgba(79, 114, 203, 0.14);
+  --accent: #4f72cb;
+  --accent-strong: #2f4f9e;
+  --shadow: 0 18px 50px rgba(79, 114, 203, 0.16);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  :root {
+    /* Android phones often report 0 for safe-area, so keep a minimum top inset. */
+    --safe-top: max(env(safe-area-inset-top, 0px), 12px);
+  }
+
+  .character-page {
+    padding-top: var(--character-header-height);
+  }
+
+  .plot-page {
+    padding-top: var(--character-header-height);
+  }
 }
 
 * {
@@ -49,7 +66,7 @@ a {
 
 .app-shell {
   min-height: 100vh;
-  padding: 0 16px 24px;
+  padding: calc(12px + var(--safe-top)) 16px 24px;
   position: relative;
   overflow: hidden;
   background: var(--cb-bg);
@@ -126,8 +143,8 @@ a {
   display: inline-flex;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(173, 104, 69, 0.12);
-  color: #8a5138;
+  background: rgba(79, 114, 203, 0.12);
+  color: #4f72cb;
   letter-spacing: 0.06em;
   font-size: 12px;
 }
@@ -139,7 +156,7 @@ a {
   min-width: 120px;
   padding: 10px 14px;
   border-radius: 16px;
-  background: rgba(159, 86, 55, 0.12);
+  background: rgba(79, 114, 203, 0.12);
   color: var(--accent-strong);
 }
 
@@ -1063,7 +1080,8 @@ a {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 12px 16px 10px;
+  min-height: var(--character-header-height);
+  padding: calc(12px + var(--safe-top)) 16px 12px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 24px rgba(109, 134, 193, 0.08);
@@ -1072,6 +1090,7 @@ a {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  align-content: start;
 }
 
 .character-page__header .character-title {
@@ -1866,8 +1885,8 @@ a {
 }
 
 .character-card.is-active {
-  border-color: rgba(159, 86, 55, 0.35);
-  box-shadow: 0 12px 24px rgba(159, 86, 55, 0.12);
+  border-color: rgba(79, 114, 203, 0.35);
+  box-shadow: 0 12px 24px rgba(79, 114, 203, 0.12);
 }
 
 .character-card h3,
@@ -1893,7 +1912,7 @@ a {
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  background: rgba(159, 86, 55, 0.1);
+  background: rgba(79, 114, 203, 0.1);
   color: var(--accent-strong);
 }
 
@@ -1903,7 +1922,7 @@ a {
   padding: 16px;
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 243, 0.95));
-  border: 1px solid rgba(159, 86, 55, 0.16);
+  border: 1px solid rgba(79, 114, 203, 0.16);
 }
 
 .detail-card__summary,
@@ -2145,7 +2164,7 @@ a {
 .plot-page {
   width: min(100%, 430px);
   margin: 0 auto;
-  padding: 72px 16px 180px;
+  padding: var(--character-header-height) 16px 180px;
   position: relative;
   z-index: 1;
 }
@@ -2877,7 +2896,7 @@ a {
 
 /* Character page wide-shell override */
 .character-page {
-  padding-top: 110px;
+  padding-top: var(--character-header-height);
 }
 
 .character-page__header,
@@ -2895,7 +2914,7 @@ a {
 
 .character-toolbar {
   position: fixed;
-  top: 58px;
+  top: var(--character-header-height);
   left: 0;
   right: 0;
   margin: 0;
@@ -2906,14 +2925,14 @@ a {
 }
 
 .character-shell {
-  padding: 12px 0 110px;
+  padding: 30px 0 110px;
   position: relative;
 }
 
 .character-sidebar {
   position: fixed;
   left: 0;
-  top: 124px;
+  top: calc(110px + var(--safe-top));
   bottom: calc(340px + env(safe-area-inset-bottom));
   width: 82px;
   padding: 8px 6px 10px;
@@ -2982,6 +3001,7 @@ a {
   width: 100%;
   padding-left: 92px;
   padding-right: 12px;
+  padding-top: 0;
   min-width: 0;
   display: grid;
   gap: 14px;
@@ -3029,12 +3049,12 @@ a {
 
 /* Character page compact sidebar + information column tuning */
 .character-shell {
-  padding: 10px 0 104px;
+  padding: 30px 0 74px;
 }
 
 .character-sidebar {
   width: 76px;
-  padding: 8px 4px 10px;
+  padding: 8px 4px 30px;
   border-radius: 0 22px 22px 0;
 }
 
@@ -3056,6 +3076,11 @@ a {
   align-content: start;
   gap: 4px;
   flex: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
 
 .character-sidebar__item.is-active {
@@ -3070,7 +3095,6 @@ a {
     inset 0 0 0 2px rgba(127, 158, 240, 0.46),
     0 10px 20px rgba(92, 109, 150, 0.12);
   cursor: grabbing;
-  touch-action: none;
 }
 
 .character-sidebar__item.is-drop-target {
@@ -3122,6 +3146,7 @@ a {
   width: calc(100% - 82px);
   padding-left: 8px;
   padding-right: 6px;
+  padding-top: 0;
   gap: 10px;
 }
 
@@ -3274,7 +3299,7 @@ a {
   }
 
   .character-sidebar {
-    top: 100px;
+    top: calc(110px + var(--safe-top));
     bottom: calc(320px + env(safe-area-inset-bottom));
   }
 
