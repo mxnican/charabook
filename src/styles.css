@@ -864,8 +864,8 @@ a {
   right: 0;
   top: calc(100% + 8px);
   z-index: 41;
-  min-width: 160px;
-  padding: 8px;
+  min-width: 128px;
+  padding: 6px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(194, 214, 250, 0.86);
@@ -876,8 +876,8 @@ a {
   width: 100%;
   border: none;
   background: transparent;
-  text-align: left;
-  padding: 10px 12px;
+  text-align: center;
+  padding: 10px 8px;
   border-radius: 14px;
   color: #4d6fb1;
 }
@@ -1304,8 +1304,8 @@ a {
   right: 0;
   top: calc(100% + 8px);
   z-index: 41;
-  min-width: 160px;
-  padding: 8px;
+  min-width: 128px;
+  padding: 6px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(194, 214, 250, 0.86);
@@ -1316,8 +1316,8 @@ a {
   width: 100%;
   border: none;
   background: transparent;
-  text-align: left;
-  padding: 10px 12px;
+  text-align: center;
+  padding: 10px 8px;
   border-radius: 14px;
   color: #4d6fb1;
 }
@@ -1740,7 +1740,7 @@ a {
   transform: translateX(-50%);
   width: min(100%, 430px);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
   border-radius: 0;
@@ -2698,7 +2698,7 @@ a {
   transform: translateX(-50%);
   width: min(100%, 430px);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.98);

@@ -45,7 +45,6 @@
         :visible="mode === 'batch'"
         :has-selection="selectedIds.length > 0"
         @delete="deleteSelected"
-        @export="exportSelected"
         @cancel="exitBatchMode"
       />
 
@@ -71,7 +70,7 @@ import PlotTopBar from '../components/PlotTopBar.vue'
 import PlotGrid from '../components/PlotGrid.vue'
 import PlotBatchToolbar from '../components/PlotBatchToolbar.vue'
 import WorkBottomNav from '../components/WorkBottomNav.vue'
-import { createPlotDraft, loadPlotItems, removePlotItems, serializePlotItems } from '../lib/plotStore'
+import { createPlotDraft, loadPlotItems, removePlotItems } from '../lib/plotStore'
 import { getWorkById, touchWorkUpdatedAt } from '../lib/workbookStore'
 
 const route = useRoute()
@@ -210,22 +209,6 @@ function confirmDelete() {
   selectedIds.value = []
   mode.value = 'normal'
   showDeleteDialog.value = false
-}
-
-function exportSelected() {
-  if (!selectedIds.value.length) return
-
-  const selectedItems = items.value.filter((item) => selectedIds.value.includes(item.id))
-  const payload = serializePlotItems(selectedItems)
-  const blob = new Blob([payload], { type: 'application/json;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `charabook-plots-${new Date().toISOString().slice(0, 10)}.json`
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
 }
 
 function handleNavSelect(view) {

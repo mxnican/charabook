@@ -1,7 +1,6 @@
 <template>
   <footer v-if="visible" class="plot-batch-toolbar">
     <button type="button" :disabled="!hasSelection" @click="$emit('delete')">删除</button>
-    <button type="button" :disabled="!hasSelection" @click="$emit('export')">导出</button>
     <button type="button" class="plot-batch-toolbar__cancel" @click="$emit('cancel')">取消</button>
   </footer>
 </template>
@@ -18,5 +17,5 @@ defineProps({
   },
 })
 
-defineEmits(['delete', 'export', 'cancel'])
+defineEmits(['delete', 'cancel'])
 </script>

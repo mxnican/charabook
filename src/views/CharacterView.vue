@@ -39,7 +39,6 @@
 
         <div v-if="menuOpen" class="character-menu__backdrop" @click="closeMenu"></div>
         <div v-if="menuOpen" class="character-menu__dropdown">
-          <button type="button" class="character-menu__item" disabled>生成角色卡</button>
           <button type="button" class="character-menu__item character-menu__item--danger" @click="requestDeleteCharacter">
             删除角色
           </button>
