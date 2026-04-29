@@ -2,3 +2,14 @@ node_modules/
 dist/
 .DS_Store
 *.log
+.android-sdk/
+.gradle-home/
+.gradle-run/
+gradle-home/
+tempdir/
+android/.gradle/
+android/**/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/app/build/outputs/
+android/**/*.apk
