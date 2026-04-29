@@ -1670,7 +1670,7 @@ a {
 
 .dialog-card p {
   margin: 0;
-  color: var(--muted);
+  color: #9aa4b2;
   line-height: 1.65;
 }
 
@@ -1964,6 +1964,10 @@ a {
 
 .text-editor-save:disabled {
   color: #c5cfdd;
+  background: rgba(246, 248, 251, 0.96);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
 }
 
 .text-editor-title {
@@ -1989,9 +1993,66 @@ a {
   background: rgba(239, 246, 255, 0.98);
 }
 
+.text-editor-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 0 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.text-editor-toolbar__button {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(194, 214, 250, 0.82);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #4a679f;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(109, 134, 193, 0.06);
+  flex: 0 0 auto;
+}
+
+.text-editor-toolbar__button--icon {
+  width: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.text-editor-toolbar__button--icon img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.text-editor-toolbar__button:hover {
+  border-color: rgba(127, 158, 240, 0.72);
+  background: rgba(248, 251, 255, 0.98);
+}
+
+.text-editor-toolbar__button.is-active {
+  border-color: rgba(90, 127, 226, 0.8);
+  background: rgba(229, 238, 255, 0.98);
+  color: #27488f;
+  box-shadow: 0 10px 20px rgba(90, 127, 226, 0.12);
+}
+
 .text-editor-field {
   display: grid;
   gap: 8px;
+}
+
+.text-editor-page--idea .text-editor-field--body {
+  gap: 0;
+}
+
+.text-editor-page--idea .text-editor-field--body > span {
+  display: none;
 }
 
 .text-editor-field span {
@@ -2021,6 +2082,59 @@ a {
   min-height: 220px;
   resize: vertical;
   line-height: 1.8;
+}
+
+.text-editor-body {
+  min-height: 240px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(194, 214, 250, 0.56);
+  background: rgba(255, 255, 255, 0.82);
+  line-height: 1.8;
+  color: var(--cb-text);
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.text-editor-page--idea .text-editor-body {
+  border: none;
+  padding: 0;
+}
+
+.text-editor-body:empty::before {
+  content: attr(data-placeholder);
+  color: #b5c1d5;
+}
+
+.text-editor-body strong {
+  font-weight: 700;
+}
+
+.text-editor-body em {
+  font-style: italic;
+}
+
+.text-editor-body u {
+  text-decoration: underline;
+}
+
+.text-editor-body s,
+.text-editor-body strike {
+  text-decoration: line-through;
+}
+
+.text-editor-body ol,
+.text-editor-body ul {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.text-editor-body li {
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .text-editor-field input::placeholder,
@@ -2209,15 +2323,16 @@ a {
 }
 
 .plot-grid {
-  column-count: 2;
-  column-gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .plot-card {
   display: block;
   width: 100%;
-  margin: 0 0 12px;
-  break-inside: avoid;
+  min-width: 0;
   border: none;
   padding: 0;
   background: transparent;
@@ -2227,11 +2342,14 @@ a {
 
 .plot-card__body {
   position: relative;
+  height: 152px;
   padding: 14px 14px 13px;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 14px 26px rgba(77, 98, 145, 0.08);
   transition: transform 0.18s ease, box-shadow 0.18s ease, outline 0.18s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .plot-card--idea .plot-card__body {
@@ -2295,9 +2413,11 @@ a {
   font-weight: 700;
   color: #2f3f66;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .plot-card__content {
@@ -2305,16 +2425,19 @@ a {
   color: #667794;
   font-size: 0.92rem;
   line-height: 1.72;
+  flex: 1;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .plot-card__meta {
-  margin-top: 12px;
+  margin-top: auto;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   color: #a0acc0;
   font-size: 0.76rem;
@@ -2334,6 +2457,238 @@ a {
   margin: 4px 0 0;
   color: var(--muted);
   text-align: center;
+}
+
+.plot-editor-page {
+  width: min(100%, 430px);
+  margin: 0 auto;
+  padding: 14px 16px 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.plot-editor-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.plot-editor-topbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.plot-editor-back,
+.plot-editor-save {
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 18px rgba(109, 134, 193, 0.08);
+  color: #4a679f;
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.plot-editor-save:disabled {
+  color: #c5cfdd;
+  background: rgba(246, 248, 251, 0.96);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+}
+
+.plot-editor-title {
+  margin: 0;
+  text-align: center;
+  font-size: 1.2rem;
+  line-height: 1.12;
+  font-weight: 700;
+  color: #2f3f66;
+}
+
+.plot-editor-board {
+  display: grid;
+  gap: 12px;
+  --plot-editor-card-min-height: 82px;
+}
+
+.plot-editor-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 28px;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  min-height: var(--plot-editor-card-min-height);
+  align-items: start;
+  border-radius: 22px;
+  border: 1px solid var(--plot-card-border, rgba(194, 214, 250, 0.56));
+  background: var(--plot-card-bg, rgba(255, 255, 255, 0.94));
+  box-shadow: 0 14px 26px rgba(77, 98, 145, 0.08);
+  color: var(--plot-card-text, #4a679f);
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+
+.plot-editor-card.is-active {
+  box-shadow: 0 16px 30px rgba(77, 98, 145, 0.14);
+  transform: translateY(-1px);
+}
+
+.plot-editor-card.is-dragging {
+  cursor: grabbing;
+  opacity: 0.84;
+  box-shadow: 0 20px 36px rgba(77, 98, 145, 0.18);
+}
+
+.plot-editor-card.is-drop-target {
+  outline: 2px solid rgba(131, 168, 250, 0.55);
+  outline-offset: 1px;
+}
+
+.plot-editor-card__left {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  align-self: start;
+  justify-items: center;
+  width: 42px;
+}
+
+.plot-editor-card__index {
+  font-size: 1.08rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.plot-editor-card__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: nowrap;
+  font-size: 0.88rem;
+  font-weight: 700;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.plot-editor-card__icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.plot-editor-card__body {
+  min-width: 0;
+}
+
+.plot-editor-card__textarea {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  background: transparent;
+  color: #2f3f66;
+  font-size: 0.95rem;
+  line-height: 1.42;
+  resize: none;
+  outline: none;
+  padding: 2px 0 0;
+  overflow: hidden;
+  user-select: text;
+}
+
+.plot-editor-card.is-dragging .plot-editor-card__textarea {
+  pointer-events: none;
+}
+
+.plot-editor-card__textarea::placeholder {
+  color: rgba(74, 103, 159, 0.48);
+}
+
+.plot-editor-card__menu-trigger {
+  border: none;
+  background: transparent;
+  color: var(--plot-card-text, #4a679f);
+  font-size: 1.6rem;
+  line-height: 1;
+  padding: 0;
+  align-self: start;
+}
+
+.plot-editor-card__menu {
+  position: absolute;
+  top: 42px;
+  right: 10px;
+  z-index: 3;
+  min-width: 92px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(194, 214, 250, 0.9);
+  box-shadow: 0 18px 32px rgba(77, 98, 145, 0.16);
+}
+
+.plot-editor-card__menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  text-align: center;
+  color: #4a679f;
+  border-radius: 10px;
+}
+
+.plot-editor-card__menu-item--danger {
+  color: #d36a7c;
+}
+
+.plot-editor-empty-card {
+  min-height: var(--plot-editor-card-min-height);
+  padding: 14px 14px 12px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(245, 246, 249, 0.98), rgba(238, 241, 246, 0.98));
+  border: 1px solid rgba(221, 226, 236, 0.92);
+  box-shadow: 0 14px 26px rgba(77, 98, 145, 0.06);
+  display: grid;
+  place-items: center start;
+}
+
+.plot-editor-empty-card__hint {
+  margin: 0;
+  color: #9aa4b2;
+  line-height: 1.45;
+}
+
+.plot-editor-add-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(194, 214, 250, 0.58);
+  box-shadow: 0 16px 30px rgba(77, 98, 145, 0.09);
+}
+
+.plot-editor-add-strip__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--plot-type-border, rgba(194, 214, 250, 0.7));
+  background: var(--plot-type-bg, #f2f6fe);
+  color: var(--plot-type-text, #4a679f);
+  padding: 8px 12px;
+  box-shadow: 0 8px 18px rgba(109, 134, 193, 0.06);
+}
+
+.plot-editor-add-strip__button img {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .plot-batch-toolbar {
@@ -2706,6 +3061,26 @@ a {
 .character-sidebar__item.is-active {
   background: rgba(133, 168, 246, 0.08);
   box-shadow: inset 0 0 0 1px rgba(133, 168, 246, 0.14);
+}
+
+.character-sidebar__item.is-dragging {
+  opacity: 0.78;
+  transform: scale(0.98);
+  box-shadow:
+    inset 0 0 0 2px rgba(127, 158, 240, 0.46),
+    0 10px 20px rgba(92, 109, 150, 0.12);
+  cursor: grabbing;
+  touch-action: none;
+}
+
+.character-sidebar__item.is-drop-target {
+  outline: 2px solid rgba(127, 158, 240, 0.44);
+  outline-offset: 1px;
+}
+
+.character-sidebar__item {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .character-sidebar__avatar {

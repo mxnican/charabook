@@ -141,6 +141,15 @@ function resizeIntro() {
   el.style.height = `${el.scrollHeight}px`
 }
 
+function syncDraftFromInputs() {
+  if (titleInput.value) {
+    draft.title = titleInput.value.value
+  }
+  if (introInput.value) {
+    draft.intro = introInput.value.value
+  }
+}
+
 function loadWork(id) {
   if (!id || id === 'new') {
     Object.assign(work, createEmptyWorkDraft())
@@ -169,6 +178,8 @@ function loadWork(id) {
 }
 
 function saveCurrent() {
+  syncDraftFromInputs()
+
   if (!draft.title.trim() && !draft.intro.trim() && !work.cover) {
     markSaved()
     return
@@ -185,6 +196,14 @@ function saveCurrent() {
   markSaved()
   nextTick(resizeTitle)
   nextTick(resizeIntro)
+
+  if (String(route.params.id || '') === 'new' || String(route.params.id || '') !== next.id) {
+    router.replace({
+      name: 'work-detail',
+      params: { id: next.id },
+      query: { ...route.query },
+    })
+  }
 }
 
 function handleSave() {

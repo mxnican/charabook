@@ -55,8 +55,14 @@
             :key="character.id"
             type="button"
             class="character-sidebar__item"
-            :class="{ 'is-active': character.id === selectedCharacterId }"
-            @click="requestSelectCharacter(character.id)"
+            :class="{
+              'is-active': character.id === selectedCharacterId,
+              'is-dragging': sidebarDrag.activeId === character.id && sidebarDrag.dragging,
+              'is-drop-target': sidebarDrag.overId === character.id,
+            }"
+            :data-character-id="character.id"
+            @click="handleSidebarItemClick(character.id)"
+            @pointerdown="handleSidebarItemPointerDown(character.id, $event)"
           >
             <span class="character-sidebar__avatar" :style="sidebarAvatarStyle(character)">
               <svg v-if="!character.avatar" viewBox="0 0 24 24" aria-hidden="true" class="character-sidebar__placeholder">
@@ -221,9 +227,10 @@ import {
   getCharacterById,
   loadCharacters,
   removeCharacter,
+  saveCharacters,
   upsertCharacter,
 } from '../lib/characterStore'
-import { getWorkById } from '../lib/workbookStore'
+import { getWorkById, touchWorkUpdatedAt } from '../lib/workbookStore'
 import saveIcon from '../assets/images/save.png'
 import saveNoIcon from '../assets/images/save-no.png'
 
@@ -246,6 +253,20 @@ const savedSnapshot = ref('')
 const settingDeleteIndex = ref(-1)
 const avatarInput = ref(null)
 const experienceInput = ref(null)
+const sidebarDrag = reactive({
+  activeId: '',
+  pointerId: -1,
+  pointerType: '',
+  armed: false,
+  dragging: false,
+  suppressClick: false,
+  overId: '',
+  startY: 0,
+  lastY: 0,
+})
+
+let sidebarDragTimer = null
+let suppressClickResetTimer = null
 
 const draft = reactive(createEmptyCharacterDraft())
 
@@ -288,7 +309,7 @@ function markSaved() {
 }
 
 function characterLabel(character) {
-  return character?.name?.trim() || '未命名角色'
+  return character?.name?.trim() || '未命名'
 }
 
 function characterInitial(name) {
@@ -374,8 +395,156 @@ function requestSelectCharacter(characterId) {
   selectCharacter(characterId)
 }
 
+function clearSidebarDragTimer() {
+  if (sidebarDragTimer !== null) {
+    window.clearTimeout(sidebarDragTimer)
+    sidebarDragTimer = null
+  }
+}
+
+function scheduleSuppressClickReset() {
+  if (suppressClickResetTimer !== null) {
+    window.clearTimeout(suppressClickResetTimer)
+  }
+  suppressClickResetTimer = window.setTimeout(() => {
+    sidebarDrag.suppressClick = false
+    suppressClickResetTimer = null
+  }, 250)
+}
+
+function resetSidebarDragState() {
+  clearSidebarDragTimer()
+  sidebarDrag.activeId = ''
+  sidebarDrag.pointerId = -1
+  sidebarDrag.pointerType = ''
+  sidebarDrag.armed = false
+  sidebarDrag.dragging = false
+  sidebarDrag.overId = ''
+  sidebarDrag.startY = 0
+  sidebarDrag.lastY = 0
+}
+
+function saveSidebarOrder() {
+  saveCharacters(workId.value, characters.value)
+  touchWorkUpdatedAt(workId.value)
+}
+
+function moveCharacterBefore(activeId, beforeId) {
+  const currentIndex = characters.value.findIndex((character) => character.id === activeId)
+  if (currentIndex < 0) return
+
+  const next = characters.value.slice()
+  const [moving] = next.splice(currentIndex, 1)
+  const targetIndex = beforeId
+    ? next.findIndex((character) => character.id === beforeId)
+    : next.length
+  next.splice(targetIndex >= 0 ? targetIndex : next.length, 0, moving)
+  characters.value = next
+}
+
+function updateSidebarDropTarget(clientY) {
+  if (!sidebarDrag.activeId) return
+
+  const items = Array.from(document.querySelectorAll('.character-sidebar__item[data-character-id]'))
+    .filter((element) => element instanceof HTMLElement)
+    .filter((element) => element.dataset.characterId && element.dataset.characterId !== sidebarDrag.activeId)
+
+  let nextOverId = ''
+  for (const element of items) {
+    const rect = element.getBoundingClientRect()
+    if (clientY < rect.top + rect.height / 2) {
+      nextOverId = element.dataset.characterId || ''
+      break
+    }
+  }
+
+  sidebarDrag.overId = nextOverId
+}
+
+function handleSidebarItemPointerDown(characterId, event) {
+  if (event.button !== 0) return
+  clearSidebarDragTimer()
+
+  sidebarDrag.activeId = characterId
+  sidebarDrag.pointerId = event.pointerId
+  sidebarDrag.pointerType = event.pointerType || ''
+  sidebarDrag.armed = false
+  sidebarDrag.dragging = false
+  sidebarDrag.overId = ''
+  sidebarDrag.startY = event.clientY
+  sidebarDrag.lastY = event.clientY
+  sidebarDrag.suppressClick = false
+
+  const target = event.currentTarget
+  if (target instanceof HTMLElement && typeof target.setPointerCapture === 'function') {
+    target.setPointerCapture(event.pointerId)
+  }
+
+  if (sidebarDrag.pointerType === 'mouse') {
+    return
+  }
+
+  sidebarDragTimer = window.setTimeout(() => {
+    sidebarDrag.armed = true
+    sidebarDrag.dragging = true
+    sidebarDrag.suppressClick = true
+    updateSidebarDropTarget(sidebarDrag.lastY)
+  }, 420)
+}
+
+function handleSidebarDragPointerMove(event) {
+  if (event.pointerId !== sidebarDrag.pointerId || !sidebarDrag.activeId) return
+
+  sidebarDrag.lastY = event.clientY
+
+  if (!sidebarDrag.armed) {
+    const movedEnough = Math.abs(event.clientY - sidebarDrag.startY) > (sidebarDrag.pointerType === 'mouse' ? 4 : 8)
+
+    if (sidebarDrag.pointerType === 'mouse' && movedEnough) {
+      sidebarDrag.armed = true
+      sidebarDrag.dragging = true
+      sidebarDrag.suppressClick = true
+      updateSidebarDropTarget(event.clientY)
+      moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+      return
+    }
+
+    if (sidebarDrag.pointerType !== 'mouse' && movedEnough) {
+      clearSidebarDragTimer()
+    }
+    return
+  }
+
+  updateSidebarDropTarget(event.clientY)
+  moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+}
+
+function finalizeSidebarDrag(commitOrder) {
+  const wasDragging = sidebarDrag.dragging || sidebarDrag.armed
+  if (commitOrder && wasDragging) {
+    saveSidebarOrder()
+    sidebarDrag.suppressClick = true
+    scheduleSuppressClickReset()
+  }
+  resetSidebarDragState()
+}
+
+function handleSidebarDragPointerUp(event) {
+  if (event.pointerId !== sidebarDrag.pointerId || !sidebarDrag.activeId) return
+  finalizeSidebarDrag(true)
+}
+
+function handleSidebarItemClick(characterId) {
+  if (sidebarDrag.suppressClick) {
+    sidebarDrag.suppressClick = false
+    return
+  }
+  requestSelectCharacter(characterId)
+}
+
 function createCharacter() {
   const next = upsertCharacter(workId.value, createEmptyCharacterDraft(characters.value.length))
+  touchWorkUpdatedAt(workId.value)
   characters.value = loadCharacters(workId.value)
   selectedCharacterId.value = next.id
   resetDraft(next)
@@ -412,6 +581,7 @@ function saveCurrentCharacter() {
     experience: draft.experience,
     summary: draft.experience,
   })
+  touchWorkUpdatedAt(workId.value)
   characters.value = loadCharacters(workId.value)
   selectedCharacterId.value = next.id
   resetDraft(next)
@@ -465,6 +635,7 @@ function requestDeleteCharacter() {
 function confirmDelete() {
   const removingId = selectedCharacterId.value
   const nextCharacters = removeCharacter(workId.value, removingId)
+  touchWorkUpdatedAt(workId.value)
   characters.value = nextCharacters.length > 0 ? nextCharacters : [createEmptyCharacterDraft(0)]
   if (nextCharacters.length === 0) {
     upsertCharacter(workId.value, characters.value[0])
@@ -584,10 +755,20 @@ function cancelDeleteSetting() {
 
 onMounted(() => {
   document.addEventListener('pointerdown', handleDocumentPointerDown, true)
+  document.addEventListener('pointermove', handleSidebarDragPointerMove, true)
+  document.addEventListener('pointerup', handleSidebarDragPointerUp, true)
+  document.addEventListener('pointercancel', handleSidebarDragPointerUp, true)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', handleDocumentPointerDown, true)
+  document.removeEventListener('pointermove', handleSidebarDragPointerMove, true)
+  document.removeEventListener('pointerup', handleSidebarDragPointerUp, true)
+  document.removeEventListener('pointercancel', handleSidebarDragPointerUp, true)
+  clearSidebarDragTimer()
+  if (suppressClickResetTimer !== null) {
+    window.clearTimeout(suppressClickResetTimer)
+  }
 })
 
 onBeforeRouteLeave((to) => {

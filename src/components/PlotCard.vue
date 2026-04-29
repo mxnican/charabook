@@ -27,7 +27,6 @@
       <p class="plot-card__content">{{ previewContent }}</p>
 
       <div class="plot-card__meta">
-        <span>{{ wordCount }}字</span>
         <span>{{ dateLabel }}</span>
       </div>
     </div>
@@ -36,7 +35,8 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { countPlotWords, formatDateLabel, getContentBody, getContentHeadline } from '../lib/plotStore'
+import { formatDateLabel } from '../lib/plotStore'
+import { htmlToTextLines } from '../lib/richText'
 
 const props = defineProps({
   item: {
@@ -59,20 +59,18 @@ const pressTimer = ref(null)
 const longPressTriggered = ref(false)
 
 const displayTitle = computed(() => {
-  const headline = getContentHeadline(props.item.content)
+  const lines = htmlToTextLines(props.item.content)
+  const headline = (lines[0] || '').trim()
   if (headline) return headline
   const title = typeof props.item.title === 'string' ? props.item.title.trim() : ''
   return title || (props.item.kind === 'idea' ? '未命名灵感' : '未命名剧情')
 })
 
 const previewContent = computed(() => {
-  const body = getContentBody(props.item.content)
-  if (body) return body
-  const content = typeof props.item.content === 'string' ? props.item.content.trim() : ''
-  return content || (props.item.kind === 'idea' ? '点击记录下一个灵感片段。' : '点击补充这一段剧情的走向。')
+  const lines = htmlToTextLines(props.item.content)
+  return (lines[1] || '').trim()
 })
 
-const wordCount = computed(() => countPlotWords(props.item.content, props.item.title))
 const dateLabel = computed(() => formatDateLabel(props.item.updatedAt || props.item.createdAt))
 
 function startPress() {

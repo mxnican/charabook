@@ -65,14 +65,14 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PlotTopBar from '../components/PlotTopBar.vue'
 import PlotGrid from '../components/PlotGrid.vue'
 import PlotBatchToolbar from '../components/PlotBatchToolbar.vue'
 import WorkBottomNav from '../components/WorkBottomNav.vue'
 import { createPlotDraft, loadPlotItems, removePlotItems, serializePlotItems } from '../lib/plotStore'
-import { getWorkById } from '../lib/workbookStore'
+import { getWorkById, touchWorkUpdatedAt } from '../lib/workbookStore'
 
 const route = useRoute()
 const router = useRouter()
@@ -80,7 +80,7 @@ const router = useRouter()
 const mode = ref('normal')
 const search = ref('')
 const selectedIds = ref([])
-const items = ref(loadPlotItems())
+const items = ref(loadPlotItems(currentWorkId()))
 const showAddMenu = ref(false)
 const showDeleteDialog = ref(false)
 
@@ -114,8 +114,20 @@ const emptyMessage = computed(() => {
 })
 
 function syncItems() {
-  items.value = loadPlotItems()
+  items.value = loadPlotItems(currentWorkId())
 }
+
+watch(
+  () => route.params.id,
+  () => {
+    mode.value = 'normal'
+    selectedIds.value = []
+    showAddMenu.value = false
+    showDeleteDialog.value = false
+    syncItems()
+  },
+  { immediate: true },
+)
 
 function toggleAddMenu() {
   showAddMenu.value = !showAddMenu.value
@@ -193,7 +205,8 @@ function deleteSelected() {
 }
 
 function confirmDelete() {
-  items.value = removePlotItems(selectedIds.value)
+  items.value = removePlotItems(currentWorkId(), selectedIds.value)
+  touchWorkUpdatedAt(currentWorkId())
   selectedIds.value = []
   mode.value = 'normal'
   showDeleteDialog.value = false

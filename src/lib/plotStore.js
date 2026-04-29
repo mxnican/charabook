@@ -1,4 +1,7 @@
-const STORAGE_KEY = 'charabook.plots.v1'
+import { normalizePlotCards } from './plotEditModel'
+
+const STORAGE_PREFIX = 'charabook.plots.v1'
+const LEGACY_STORAGE_KEY = 'charabook.plots.v1'
 
 const SEED_ITEMS = [
   {
@@ -57,6 +60,7 @@ function normalizeKind(kind) {
 
 function normalizeItem(item, index = 0) {
   const kind = normalizeKind(item?.kind)
+  const cards = Array.isArray(item?.cards) ? normalizePlotCards(item.cards) : undefined
   return {
     id: item?.id || crypto.randomUUID(),
     kind,
@@ -65,30 +69,49 @@ function normalizeItem(item, index = 0) {
     createdAt: typeof item?.createdAt === 'string' && item.createdAt ? item.createdAt : todayString(),
     updatedAt: typeof item?.updatedAt === 'string' && item.updatedAt ? item.updatedAt : todayString(),
     sortIndex: Number.isFinite(item?.sortIndex) ? item.sortIndex : index,
+    ...(cards ? { cards } : {}),
   }
 }
 
-function seedItems() {
+function storageKey(workId) {
+  return `${STORAGE_PREFIX}.${workId || 'default'}`
+}
+
+function readRawItems(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function seedItems(workId) {
   const seeded = SEED_ITEMS.map((item, index) => normalizeItem(item, index))
-  savePlotItems(seeded)
+  savePlotItems(workId, seeded)
   return seeded
 }
 
-export function loadPlotItems() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return seedItems()
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return seedItems()
-    return parsed.map((item, index) => normalizeItem(item, index))
-  } catch {
-    return seedItems()
+export function loadPlotItems(workId) {
+  const key = storageKey(workId)
+  const parsed = readRawItems(key)
+  if (parsed) return parsed.map((item, index) => normalizeItem(item, index))
+
+  const legacyParsed = readRawItems(LEGACY_STORAGE_KEY)
+  if (legacyParsed) {
+    const normalized = legacyParsed.map((item, index) => normalizeItem(item, index))
+    savePlotItems(workId, normalized)
+    return normalized
   }
+
+  return seedItems(workId)
 }
 
-export function savePlotItems(items) {
+export function savePlotItems(workId, items) {
   localStorage.setItem(
-    STORAGE_KEY,
+    storageKey(workId),
     JSON.stringify(items.map((item, index) => normalizeItem(item, index))),
   )
 }
@@ -105,31 +128,38 @@ export function createPlotDraft(kind = 'plot') {
   }
 }
 
-export function upsertPlotItem(nextItem) {
-  const items = loadPlotItems()
+export function upsertPlotItem(workId, nextItem) {
+  const items = loadPlotItems(workId)
   const normalized = normalizeItem(nextItem, items.length)
   const index = items.findIndex((item) => item.id === normalized.id)
   const next = index >= 0
     ? items.map((item) => (item.id === normalized.id ? normalized : item))
     : [normalized, ...items]
-  savePlotItems(next)
+  savePlotItems(workId, next)
   return normalized
 }
 
-export function removePlotItems(ids) {
+export function removePlotItems(workId, ids) {
   const idSet = new Set(ids)
-  const next = loadPlotItems().filter((item) => !idSet.has(item.id))
-  savePlotItems(next)
+  const next = loadPlotItems(workId).filter((item) => !idSet.has(item.id))
+  savePlotItems(workId, next)
   return next
 }
 
-export function getPlotItemById(id) {
-  return loadPlotItems().find((item) => item.id === id) || null
+export function getPlotItemById(workId, id) {
+  return loadPlotItems(workId).find((item) => item.id === id) || null
 }
 
 export function countPlotWords(content, title = '') {
   const text = `${title}${content}`.replace(/\s+/g, '')
-  return text.length
+  if (!text) return 0
+
+  if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+    const segmenter = new Intl.Segmenter('zh-Hans', { granularity: 'grapheme' })
+    return Array.from(segmenter.segment(text)).length
+  }
+
+  return Array.from(text).length
 }
 
 export function getContentHeadline(content) {
@@ -152,14 +182,18 @@ export function formatDateLabel(dateString) {
 
 export function serializePlotItems(items) {
   return JSON.stringify(
-    items.map((item) => ({
-      id: item.id,
-      kind: item.kind,
-      title: item.title,
-      content: item.content,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    })),
+    items.map((item) => {
+      const normalized = normalizeItem(item)
+      return {
+        id: normalized.id,
+        kind: normalized.kind,
+        title: normalized.title,
+        content: normalized.content,
+        createdAt: normalized.createdAt,
+        updatedAt: normalized.updatedAt,
+        ...(Array.isArray(normalized.cards) ? { cards: normalized.cards } : {}),
+      }
+    }),
     null,
     2,
   )

@@ -74,6 +74,23 @@ export function upsertWork(nextWork) {
   return normalized
 }
 
+export function touchWorkUpdatedAt(workId) {
+  if (!workId) return null
+  const works = loadWorks()
+  const index = works.findIndex((work) => work.id === workId)
+  if (index < 0) return null
+  const next = works.map((work) =>
+    work.id === workId
+      ? {
+          ...work,
+          updatedAt: todayString(),
+        }
+      : work,
+  )
+  saveWorks(next)
+  return next[index] || null
+}
+
 export function removeWorks(ids) {
   const idSet = new Set(ids)
   const next = loadWorks().filter((work) => !idSet.has(work.id))
