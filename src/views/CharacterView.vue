@@ -62,6 +62,10 @@
             :data-character-id="character.id"
             @click="handleSidebarItemClick(character.id)"
             @pointerdown="handleSidebarItemPointerDown(character.id, $event)"
+            @touchstart.passive="handleSidebarTouchStart(character.id, $event)"
+            @touchmove="handleSidebarTouchMove($event)"
+            @touchend="handleSidebarTouchEnd($event)"
+            @touchcancel="handleSidebarTouchEnd($event)"
           >
             <span class="character-sidebar__avatar" :style="sidebarAvatarStyle(character)">
               <svg v-if="!character.avatar" viewBox="0 0 24 24" aria-hidden="true" class="character-sidebar__placeholder">
@@ -469,6 +473,7 @@ function updateSidebarDropTarget(clientY) {
 
 function handleSidebarItemPointerDown(characterId, event) {
   if (event.button !== 0) return
+  if (event.pointerType === 'touch') return
   clearSidebarDragTimer()
 
   sidebarDrag.activeId = characterId
@@ -494,9 +499,82 @@ function handleSidebarItemPointerDown(characterId, event) {
     return
   }
 
-  sidebarDrag.armed = true
+  if (sidebarDrag.pointerType === 'touch') {
+    return
+  }
+}
+
+function handleSidebarTouchStart(characterId, event) {
+  if (event.touches.length !== 1) return
+  clearSidebarDragTimer()
+
+  const touch = event.touches[0]
+  sidebarDrag.activeId = characterId
+  sidebarDrag.pointerId = touch.identifier
+  sidebarDrag.pointerType = 'touch'
+  sidebarDrag.armed = false
+  sidebarDrag.dragging = false
+  sidebarDrag.hasMoved = false
+  sidebarDrag.overId = ''
+  sidebarDrag.startY = touch.clientY
+  sidebarDrag.lastY = touch.clientY
+  sidebarDrag.suppressClick = false
+
+  sidebarDragTimer = window.setTimeout(() => {
+    if (sidebarDrag.activeId !== characterId || sidebarDrag.pointerType !== 'touch') return
+    sidebarDrag.armed = true
+    sidebarDrag.dragging = true
+    sidebarDrag.suppressClick = true
+    updateSidebarDropTarget(sidebarDrag.lastY)
+  }, 500)
+}
+
+function handleSidebarTouchMove(event) {
+  if (!sidebarDrag.activeId || sidebarDrag.pointerType !== 'touch') return
+  const touch = Array.from(event.touches).find((item) => item.identifier === sidebarDrag.pointerId)
+  if (!touch) return
+
+  sidebarDrag.lastY = touch.clientY
+  const movedDistance = Math.abs(touch.clientY - sidebarDrag.startY)
+
+  if (!sidebarDrag.armed) {
+    if (movedDistance > 8) {
+      clearSidebarDragTimer()
+      sidebarDrag.hasMoved = true
+      sidebarDrag.suppressClick = true
+    }
+    return
+  }
+
+  event.preventDefault()
   sidebarDrag.dragging = true
-  updateSidebarDropTarget(sidebarDrag.lastY)
+  if (movedDistance > 3) {
+    sidebarDrag.hasMoved = true
+    sidebarDrag.suppressClick = true
+  }
+  updateSidebarDropTarget(touch.clientY)
+  const changed = moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+  if (changed) {
+    sidebarDrag.hasMoved = true
+    sidebarDrag.suppressClick = true
+    saveSidebarOrder()
+  }
+}
+
+function handleSidebarTouchEnd(event) {
+  if (!sidebarDrag.activeId || sidebarDrag.pointerType !== 'touch') return
+  const touchStillActive = Array.from(event.touches).some((item) => item.identifier === sidebarDrag.pointerId)
+  if (touchStillActive) return
+
+  if (sidebarDrag.armed) {
+    const changed = moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+    if (changed) {
+      sidebarDrag.hasMoved = true
+      sidebarDrag.suppressClick = true
+      saveSidebarOrder()
+    }
+  }
+  finalizeSidebarDrag()
 }
 
 function handleSidebarDragPointerMove(event) {
@@ -510,8 +588,12 @@ function handleSidebarDragPointerMove(event) {
       return
     }
 
-    sidebarDrag.armed = true
-    sidebarDrag.dragging = true
+    if (movedDistance > 8) {
+      clearSidebarDragTimer()
+      sidebarDrag.hasMoved = true
+      sidebarDrag.suppressClick = true
+    }
+    return
   }
 
   sidebarDrag.dragging = true
@@ -520,6 +602,9 @@ function handleSidebarDragPointerMove(event) {
     sidebarDrag.suppressClick = true
   }
   updateSidebarDropTarget(event.clientY)
+  if (sidebarDrag.pointerType === 'touch') {
+    event.preventDefault()
+  }
   const changed = moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
   if (changed) {
     sidebarDrag.hasMoved = true
@@ -537,6 +622,14 @@ function finalizeSidebarDrag() {
 
 function handleSidebarDragPointerUp(event) {
   if (event.pointerId !== sidebarDrag.pointerId || !sidebarDrag.activeId) return
+  if (sidebarDrag.pointerType === 'touch' && sidebarDrag.armed) {
+    const changed = moveCharacterBefore(sidebarDrag.activeId, sidebarDrag.overId)
+    if (changed) {
+      sidebarDrag.hasMoved = true
+      sidebarDrag.suppressClick = true
+      saveSidebarOrder()
+    }
+  }
   finalizeSidebarDrag()
 }
 
@@ -671,7 +764,14 @@ function goDetail() {
 
 function handleMenuSelect(view) {
   if (view === 'plot') {
-    router.push({ name: 'plot-list', params: { id: workId.value }, query: { ...route.query } })
+    router.push({
+      name: 'plot-list',
+      params: { id: workId.value },
+      query: {
+        ...route.query,
+        workTitle: workTitle.value,
+      },
+    })
   }
 }
 

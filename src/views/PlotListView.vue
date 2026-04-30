@@ -79,13 +79,15 @@ const router = useRouter()
 const mode = ref('normal')
 const search = ref('')
 const selectedIds = ref([])
-const items = ref(loadPlotItems(currentWorkId()))
 const showAddMenu = ref(false)
 const showDeleteDialog = ref(false)
+const workId = computed(() => String(route.params.id || route.query.workId || ''))
+const items = ref(loadPlotItems(workId.value))
 
 const workTitle = computed(() => {
-  const work = getWorkById(currentWorkId())
-  return work?.title?.trim() || '剧情列表'
+  const work = getWorkById(workId.value)
+  const queryTitle = String(route.query.workTitle || '').trim()
+  return work?.title?.trim() || queryTitle || ''
 })
 
 const filteredItems = computed(() => {
@@ -113,11 +115,11 @@ const emptyMessage = computed(() => {
 })
 
 function syncItems() {
-  items.value = loadPlotItems(currentWorkId())
+  items.value = loadPlotItems(workId.value)
 }
 
 watch(
-  () => route.params.id,
+  () => [route.params.id, route.query.workId],
   () => {
     mode.value = 'normal'
     selectedIds.value = []
@@ -165,16 +167,12 @@ function toggleAll() {
     : Array.from(new Set([...selectedIds.value, ...filteredIds]))
 }
 
-function currentWorkId() {
-  return String(route.params.id || '')
-}
-
 function goHome() {
   router.push({ name: 'home' })
 }
 
 function goDetail() {
-  router.push({ name: 'work-detail', params: { id: currentWorkId() } })
+  router.push({ name: 'work-detail', params: { id: workId.value } })
 }
 
 function openItem(id) {
@@ -184,7 +182,7 @@ function openItem(id) {
   router.push({
     name: target,
     params: { id: item.id },
-    query: { workId: currentWorkId() },
+    query: { workId: workId.value },
   })
 }
 
@@ -194,7 +192,7 @@ function createAndOpen(kind) {
   router.push({
     name: kind === 'idea' ? 'idea' : 'plot-edit',
     params: { id: draft.id },
-    query: { workId: currentWorkId(), draft: '1' },
+    query: { workId: workId.value, draft: '1' },
   })
 }
 
@@ -204,8 +202,8 @@ function deleteSelected() {
 }
 
 function confirmDelete() {
-  items.value = removePlotItems(currentWorkId(), selectedIds.value)
-  touchWorkUpdatedAt(currentWorkId())
+  items.value = removePlotItems(workId.value, selectedIds.value)
+  touchWorkUpdatedAt(workId.value)
   selectedIds.value = []
   mode.value = 'normal'
   showDeleteDialog.value = false
@@ -215,7 +213,7 @@ function handleNavSelect(view) {
   if (view === 'character') {
     router.push({
       name: 'character',
-      params: { id: currentWorkId() },
+      params: { id: workId.value },
       query: { ...route.query },
     })
   }

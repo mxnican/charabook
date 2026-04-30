@@ -15,21 +15,6 @@
   --shadow: 0 18px 50px rgba(79, 114, 203, 0.16);
 }
 
-@media (hover: none) and (pointer: coarse) {
-  :root {
-    /* Android phones often report 0 for safe-area, so keep a minimum top inset. */
-    --safe-top: max(env(safe-area-inset-top, 0px), 12px);
-  }
-
-  .character-page {
-    padding-top: var(--character-header-height);
-  }
-
-  .plot-page {
-    padding-top: var(--character-header-height);
-  }
-}
-
 * {
   box-sizing: border-box;
 }
@@ -251,7 +236,7 @@ a {
 .fab {
   position: fixed;
   right: 22px;
-  bottom: 28px;
+  bottom: 60px;
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -2164,15 +2149,14 @@ a {
 .plot-page {
   width: min(100%, 430px);
   margin: 0 auto;
-  --plot-header-height: calc(64px + var(--safe-top));
-  padding: var(--plot-header-height) 16px 180px;
+  padding: calc(var(--character-header-height) - 20px) 16px 180px;
   position: relative;
   z-index: 1;
 }
 
 .plot-shell {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   align-content: start;
 }
 
@@ -2188,9 +2172,9 @@ a {
 }
 
 .plot-page .character-page__header {
-  min-height: var(--plot-header-height);
-  padding-top: calc(10px + var(--safe-top));
-  padding-bottom: 10px;
+  min-height: var(--character-header-height);
+  padding-top: calc(12px + var(--safe-top));
+  padding-bottom: 12px;
 }
 
 .plot-search {
@@ -2284,7 +2268,7 @@ a {
   z-index: 120;
   display: grid;
   place-items: start end;
-  padding: calc(var(--plot-header-height) + 12px) 16px 24px;
+  padding: calc(var(--character-header-height) + 12px) 16px 24px;
   background: rgba(27, 35, 53, 0.18);
   backdrop-filter: blur(8px);
 }
@@ -2869,7 +2853,6 @@ a {
 
   .fab {
     right: 18px;
-    bottom: 40px;
   }
 
   .home-view {
@@ -2932,8 +2915,8 @@ a {
 .character-sidebar {
   position: fixed;
   left: 0;
-  top: calc(110px + var(--safe-top));
-  bottom: calc(340px + env(safe-area-inset-bottom));
+  top: calc(120px + var(--safe-top));
+  bottom: calc(56px + env(safe-area-inset-bottom));
   width: 82px;
   padding: 8px 6px 10px;
   border: none;
@@ -2959,7 +2942,7 @@ a {
   min-height: 0;
   height: auto;
   padding-top: 6px;
-  padding-bottom: 40px;
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -3049,12 +3032,12 @@ a {
 
 /* Character page compact sidebar + information column tuning */
 .character-shell {
-  padding: 30px 0 74px;
+  padding: 12px 0 110px;
 }
 
 .character-sidebar {
   width: 76px;
-  padding: 8px 4px 30px;
+  padding: 8px 4px 56px;
   border-radius: 0 22px 22px 0;
 }
 
@@ -3077,7 +3060,7 @@ a {
   gap: 4px;
   flex: none;
   cursor: grab;
-  touch-action: none;
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   -webkit-user-drag: none;
@@ -3095,6 +3078,7 @@ a {
     inset 0 0 0 2px rgba(127, 158, 240, 0.46),
     0 10px 20px rgba(92, 109, 150, 0.12);
   cursor: grabbing;
+  touch-action: none;
 }
 
 .character-sidebar__item.is-drop-target {
@@ -3287,22 +3271,6 @@ a {
 }
 
 @media (max-width: 390px) {
-  .character-sidebar {
-    width: 74px;
-  }
-
-  .character-workspace {
-    margin-left: 60px;
-    width: calc(100% - 50px);
-    padding-left: 6px;
-    padding-right: 4px;
-  }
-
-  .character-sidebar {
-    top: calc(110px + var(--safe-top));
-    bottom: calc(320px + env(safe-area-inset-bottom));
-  }
-
   .character-basic__field {
     grid-template-columns: 46px minmax(0, 1fr);
   }
