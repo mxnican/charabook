@@ -61,7 +61,7 @@ export function movePlotCard(cards, cardId, targetIndex) {
   const fromIndex = normalized.findIndex((card) => card.id === cardId)
   if (fromIndex < 0 || normalized.length === 0) return normalized
 
-  const clampedTarget = Math.max(0, Math.min(targetIndex, normalized.length - 1))
+  const clampedTarget = Math.max(0, Math.min(targetIndex, normalized.length))
   if (fromIndex === clampedTarget) return normalized
 
   const nextCards = normalized.slice()
@@ -72,6 +72,21 @@ export function movePlotCard(cards, cardId, targetIndex) {
     ...card,
     sortIndex: index,
   }))
+}
+
+export function movePlotCardByOffset(cards, cardId, offset) {
+  const normalized = normalizePlotCards(cards)
+  const fromIndex = normalized.findIndex((card) => card.id === cardId)
+  if (fromIndex < 0 || normalized.length === 0 || !Number.isFinite(offset) || offset === 0) {
+    return normalized
+  }
+
+  const targetIndex = fromIndex + offset
+  if (targetIndex < 0 || targetIndex >= normalized.length) {
+    return normalized
+  }
+
+  return movePlotCard(normalized, cardId, targetIndex)
 }
 
 export function extractPlotCardsFromItem(item) {

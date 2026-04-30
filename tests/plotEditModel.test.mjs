@@ -3,6 +3,7 @@ import {
   buildPlotBoardSummary,
   extractPlotCardsFromItem,
   movePlotCard,
+  movePlotCardByOffset,
 } from '../src/lib/plotEditModelCore.js'
 
 const fallbackCards = extractPlotCardsFromItem({
@@ -37,4 +38,34 @@ const reordered = movePlotCard(
 assert.deepEqual(
   reordered.map((card) => card.id),
   ['c', 'a', 'b'],
+)
+
+const movedUp = movePlotCardByOffset(
+  [
+    { id: 'a', content: 'A' },
+    { id: 'b', content: 'B' },
+    { id: 'c', content: 'C' },
+  ],
+  'b',
+  -1,
+)
+
+assert.deepEqual(
+  movedUp.map((card) => card.id),
+  ['b', 'a', 'c'],
+)
+
+const movedDown = movePlotCardByOffset(
+  [
+    { id: 'a', content: 'A' },
+    { id: 'b', content: 'B' },
+    { id: 'c', content: 'C' },
+  ],
+  'b',
+  1,
+)
+
+assert.deepEqual(
+  movedDown.map((card) => card.id),
+  ['a', 'c', 'b'],
 )

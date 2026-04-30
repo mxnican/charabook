@@ -20,12 +20,10 @@
               `plot-editor-card--${card.type}`,
               {
                 'is-active': activeCardId === card.id,
-                'is-dragging': dragState.isDragging && dragState.cardId === card.id,
-                'is-drop-target': dragState.isDragging && dragState.overCardId === card.id,
+                'is-menu-open': menuOpenCardId === card.id,
               },
             ]"
             :style="cardStyle(card.type)"
-            @pointerdown="handleCardPointerDown($event, card.id)"
           >
             <div class="plot-editor-card__left">
               <div class="plot-editor-card__index">{{ formatIndex(index + 1) }}</div>
@@ -55,12 +53,28 @@
               <button type="button" class="plot-editor-card__menu-item plot-editor-card__menu-item--danger" @click="deleteCard(card.id)">
                 删除
               </button>
+              <button
+                type="button"
+                class="plot-editor-card__menu-item"
+                :disabled="!canMoveCardByOffset(card.id, -1)"
+                @click="moveCardByOffset(card.id, -1)"
+              >
+                上移
+              </button>
+              <button
+                type="button"
+                class="plot-editor-card__menu-item"
+                :disabled="!canMoveCardByOffset(card.id, 1)"
+                @click="moveCardByOffset(card.id, 1)"
+              >
+                下移
+              </button>
             </div>
           </article>
         </template>
 
         <article v-else class="plot-editor-empty-card">
-          <p class="plot-editor-empty-card__hint">点击下方按钮，选择类型开始编辑...</p>
+          <p class="plot-editor-empty-card__hint">点击下方按钮，选择类型开始编辑。</p>
         </article>
       </section>
 
@@ -102,9 +116,8 @@ import {
   extractPlotCardsFromItem,
   getPlotCardType,
   getPlotCardTypeList,
-  movePlotCard,
+  movePlotCardByOffset,
 } from '../lib/plotEditModel'
-import { getPlotCardDragHoldDelay } from '../lib/plotDragBehavior'
 import { touchWorkUpdatedAt } from '../lib/workbookStore'
 
 const route = useRoute()
@@ -120,18 +133,6 @@ const pendingNavigation = ref(null)
 const allowRouteLeave = ref(false)
 const menuOpenCardId = ref('')
 const activeCardId = ref('')
-const dragState = reactive({
-  pointerId: -1,
-  cardId: '',
-  overCardId: '',
-  isDragging: false,
-  pointerType: '',
-  startX: 0,
-  startY: 0,
-  lastX: 0,
-  lastY: 0,
-})
-const dragPressTimer = ref(0)
 const cardRefs = new Map()
 
 const cardTypeList = getPlotCardTypeList()
@@ -191,132 +192,12 @@ function focusCard(id) {
   resizeCardHeight(id)
 }
 
-function clearDragTimer() {
-  if (dragPressTimer.value) {
-    clearTimeout(dragPressTimer.value)
-    dragPressTimer.value = 0
-  }
-}
-
-function detachDragListeners() {
-  window.removeEventListener('pointermove', handleWindowPointerMove)
-  window.removeEventListener('pointerup', handleWindowPointerUp)
-  window.removeEventListener('pointercancel', handleWindowPointerCancel)
-}
-
-function resetDragState() {
-  clearDragTimer()
-  detachDragListeners()
-  dragState.pointerId = -1
-  dragState.cardId = ''
-  dragState.overCardId = ''
-  dragState.isDragging = false
-  dragState.pointerType = ''
-  dragState.lastX = 0
-  dragState.lastY = 0
-  menuOpenCardId.value = ''
-}
-
-function startDragging(cardId) {
-  dragState.isDragging = true
-  dragState.overCardId = cardId
-  menuOpenCardId.value = ''
-  activeCardId.value = cardId
-}
-
-function getCardElementFromPoint(clientX, clientY) {
-  const element = document.elementFromPoint(clientX, clientY)
-  if (!(element instanceof HTMLElement)) return null
-  return element.closest('.plot-editor-card')
-}
-
-function moveCardToIndex(cardId, targetIndex) {
-  const nextCards = movePlotCard(draft.cards, cardId, targetIndex)
-  const orderChanged = nextCards.some((card, index) => card.id !== draft.cards[index]?.id)
-  if (!orderChanged) return false
-  draft.cards = nextCards
-  return true
-}
-
-function updateDragTarget(clientX, clientY) {
-  const targetCard = getCardElementFromPoint(clientX, clientY)
-  const targetId = targetCard?.dataset.cardId || ''
-  if (!targetId || targetId === dragState.cardId) return
-
-  const targetIndex = draft.cards.findIndex((card) => card.id === targetId)
-  if (targetIndex < 0) return
-
-  const changed = moveCardToIndex(dragState.cardId, targetIndex)
-  if (changed) {
-    dragState.overCardId = targetId
-    persistDraft()
-  }
-}
-
-function handleCardPointerDown(event, cardId) {
-  if (typeof event.button === 'number' && event.button !== 0) return
-  const target = event.target
-  if (!(target instanceof HTMLElement)) return
-  if (target.closest('.plot-editor-card__menu-trigger') || target.closest('.plot-editor-card__menu')) {
-    return
-  }
-
-  clearDragTimer()
-  dragState.pointerId = event.pointerId
-  dragState.cardId = cardId
-  dragState.overCardId = cardId
-  dragState.isDragging = false
-  dragState.pointerType = event.pointerType || 'mouse'
-  dragState.startX = event.clientX
-  dragState.startY = event.clientY
-  dragState.lastX = event.clientX
-  dragState.lastY = event.clientY
-
-  const currentTarget = event.currentTarget
-  if (currentTarget instanceof HTMLElement && typeof currentTarget.setPointerCapture === 'function') {
-    currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  window.addEventListener('pointermove', handleWindowPointerMove)
-  window.addEventListener('pointerup', handleWindowPointerUp)
-  window.addEventListener('pointercancel', handleWindowPointerCancel)
-
-  const holdDelay = getPlotCardDragHoldDelay(dragState.pointerType)
-  if (holdDelay > 0) {
-    dragPressTimer.value = window.setTimeout(() => {
-      if (dragState.pointerId === event.pointerId && dragState.cardId === cardId) {
-        startDragging(cardId)
-        updateDragTarget(dragState.lastX, dragState.lastY)
-      }
-    }, holdDelay)
-  }
-}
-
-function handleWindowPointerMove(event) {
-  if (event.pointerId !== dragState.pointerId) return
-  dragState.lastX = event.clientX
-  dragState.lastY = event.clientY
-
-  if (!dragState.isDragging) {
-    return
-  }
-
-  event.preventDefault()
-  updateDragTarget(event.clientX, event.clientY)
-}
-
-function handleWindowPointerUp(event) {
-  if (event.pointerId !== dragState.pointerId) return
-  resetDragState()
-}
-
-function handleWindowPointerCancel(event) {
-  if (event.pointerId !== dragState.pointerId) return
-  resetDragState()
-}
-
 function formatIndex(value) {
   return String(value).padStart(2, '0')
+}
+
+function closeCardMenu() {
+  menuOpenCardId.value = ''
 }
 
 function syncMenuState() {
@@ -326,7 +207,7 @@ function syncMenuState() {
 }
 
 function loadDraft() {
-  resetDragState()
+  closeCardMenu()
   const id = String(route.params.id || '')
   const source = id ? getPlotItemById(currentWorkId(), id) : null
   if (source && source.kind === 'plot') {
@@ -363,7 +244,7 @@ function loadDraft() {
 function addCard(type) {
   const card = createPlotCard(type, draft.cards.length)
   draft.cards.push(card)
-  menuOpenCardId.value = ''
+  closeCardMenu()
   activeCardId.value = card.id
   loaded.value = true
   nextTick(() => {
@@ -373,14 +254,9 @@ function addCard(type) {
 }
 
 function deleteCard(cardId) {
-  if (dragState.cardId === cardId || dragState.overCardId === cardId) {
-    resetDragState()
-  }
   draft.cards = draft.cards.filter((card) => card.id !== cardId)
   cardRefs.delete(cardId)
-  if (menuOpenCardId.value === cardId) {
-    menuOpenCardId.value = ''
-  }
+  closeCardMenu()
   if (activeCardId.value === cardId) {
     activeCardId.value = draft.cards[0]?.id || ''
   }
@@ -390,6 +266,25 @@ function deleteCard(cardId) {
 
 function toggleCardMenu(cardId) {
   menuOpenCardId.value = menuOpenCardId.value === cardId ? '' : cardId
+}
+
+function canMoveCardByOffset(cardId, offset) {
+  const index = draft.cards.findIndex((card) => card.id === cardId)
+  if (index < 0 || !Number.isFinite(offset)) return false
+  const targetIndex = index + offset
+  return targetIndex >= 0 && targetIndex < draft.cards.length
+}
+
+function moveCardByOffset(cardId, offset) {
+  const nextCards = movePlotCardByOffset(draft.cards, cardId, offset)
+  const orderChanged = nextCards.some((card, index) => card.id !== draft.cards[index]?.id)
+  closeCardMenu()
+  if (!orderChanged) return false
+  draft.cards = nextCards
+  activeCardId.value = cardId
+  loaded.value = true
+  nextTick(resizeAllCards)
+  return true
 }
 
 function typeButtonStyle(typeMeta) {
@@ -446,7 +341,7 @@ function persistDraft({ syncRoute = false } = {}) {
 }
 
 function saveDraft() {
-  resetDragState()
+  closeCardMenu()
   const saved = persistDraft({ syncRoute: true })
   activeCardId.value = draft.cards[0]?.id || ''
   nextTick(() => {
@@ -499,17 +394,16 @@ function closeMenusOnDocumentClick(event) {
   const target = event.target
   if (!(target instanceof HTMLElement)) return
   if (target.closest('.plot-editor-card__menu') || target.closest('.plot-editor-card__menu-trigger')) return
-  menuOpenCardId.value = ''
+  closeCardMenu()
 }
 
 watch(
   () => [route.params.id, route.query.workId],
   () => {
-    resetDragState()
     loaded.value = false
     showLeaveDialog.value = false
     pendingNavigation.value = null
-    menuOpenCardId.value = ''
+    closeCardMenu()
     loadDraft()
   },
   { immediate: true },
@@ -523,7 +417,6 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  resetDragState()
   document.removeEventListener('click', closeMenusOnDocumentClick)
 })
 

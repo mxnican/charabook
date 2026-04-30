@@ -2164,7 +2164,8 @@ a {
 .plot-page {
   width: min(100%, 430px);
   margin: 0 auto;
-  padding: var(--character-header-height) 16px 180px;
+  --plot-header-height: calc(64px + var(--safe-top));
+  padding: var(--plot-header-height) 16px 180px;
   position: relative;
   z-index: 1;
 }
@@ -2184,6 +2185,12 @@ a {
 
 .plot-topbar.is-batch {
   grid-template-columns: auto 1fr;
+}
+
+.plot-page .character-page__header {
+  min-height: var(--plot-header-height);
+  padding-top: calc(10px + var(--safe-top));
+  padding-bottom: 10px;
 }
 
 .plot-search {
@@ -2274,10 +2281,10 @@ a {
 .plot-add-menu__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 120;
   display: grid;
   place-items: start end;
-  padding: 76px 16px 24px;
+  padding: calc(var(--plot-header-height) + 12px) 16px 24px;
   background: rgba(27, 35, 53, 0.18);
   backdrop-filter: blur(8px);
 }
@@ -2547,9 +2554,6 @@ a {
   background: var(--plot-card-bg, rgba(255, 255, 255, 0.94));
   box-shadow: 0 14px 26px rgba(77, 98, 145, 0.08);
   color: var(--plot-card-text, #4a679f);
-  touch-action: pan-y;
-  user-select: none;
-  cursor: grab;
 }
 
 .plot-editor-card.is-active {
@@ -2557,15 +2561,8 @@ a {
   transform: translateY(-1px);
 }
 
-.plot-editor-card.is-dragging {
-  cursor: grabbing;
-  opacity: 0.84;
-  box-shadow: 0 20px 36px rgba(77, 98, 145, 0.18);
-}
-
-.plot-editor-card.is-drop-target {
-  outline: 2px solid rgba(131, 168, 250, 0.55);
-  outline-offset: 1px;
+.plot-editor-card.is-menu-open {
+  z-index: 8;
 }
 
 .plot-editor-card__left {
@@ -2619,10 +2616,6 @@ a {
   user-select: text;
 }
 
-.plot-editor-card.is-dragging .plot-editor-card__textarea {
-  pointer-events: none;
-}
-
 .plot-editor-card__textarea::placeholder {
   color: rgba(74, 103, 159, 0.48);
 }
@@ -2641,13 +2634,15 @@ a {
   position: absolute;
   top: 42px;
   right: 10px;
-  z-index: 3;
-  min-width: 92px;
+  z-index: 10;
+  min-width: 104px;
   padding: 8px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(194, 214, 250, 0.9);
   box-shadow: 0 18px 32px rgba(77, 98, 145, 0.16);
+  display: grid;
+  gap: 4px;
 }
 
 .plot-editor-card__menu-item {
@@ -2658,6 +2653,11 @@ a {
   text-align: center;
   color: #4a679f;
   border-radius: 10px;
+}
+
+.plot-editor-card__menu-item:disabled {
+  color: #b8c3d7;
+  cursor: default;
 }
 
 .plot-editor-card__menu-item--danger {
@@ -2869,7 +2869,7 @@ a {
 
   .fab {
     right: 18px;
-    bottom: 22px;
+    bottom: 40px;
   }
 
   .home-view {
