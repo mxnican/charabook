@@ -598,6 +598,7 @@ a {
   width: min(100%, 430px);
   margin: 8px auto 0;
   padding: 0 16px;
+  height: 50px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -629,6 +630,7 @@ a {
 
 .character-toolbar__spacer {
   flex: 1;
+  align-self: stretch;
 }
 
 .character-sidebar {
@@ -2149,7 +2151,7 @@ a {
 .plot-page {
   width: min(100%, 430px);
   margin: 0 auto;
-  padding: calc(var(--character-header-height) - 20px) 16px 180px;
+  padding: 86px 16px 180px;
   position: relative;
   z-index: 1;
 }
@@ -2881,7 +2883,7 @@ a {
 
 /* Character page wide-shell override */
 .character-page {
-  padding-top: var(--character-header-height);
+  padding-top: 76px;
 }
 
 .character-page__header,
@@ -2903,7 +2905,7 @@ a {
   left: 0;
   right: 0;
   margin: 0;
-  padding-top: 10px;
+  padding-top: 0;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(12px);
   z-index: 70;
@@ -3034,7 +3036,7 @@ a {
 
 /* Character page compact sidebar + information column tuning */
 .character-shell {
-  padding: 12px 0 110px;
+  padding: 50px 0 calc(88px + env(safe-area-inset-bottom));
 }
 
 .character-sidebar {
