@@ -87,7 +87,7 @@ const items = ref(loadPlotItems(workId.value))
 const workTitle = computed(() => {
   const work = getWorkById(workId.value)
   const queryTitle = String(route.query.workTitle || '').trim()
-  return work?.title?.trim() || queryTitle || ''
+  return work?.title?.trim() || queryTitle || '未命名作品'
 })
 
 const filteredItems = computed(() => {

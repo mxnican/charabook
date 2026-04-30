@@ -2666,25 +2666,27 @@ a {
 }
 
 .plot-editor-add-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 16px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(194, 214, 250, 0.58);
-  box-shadow: 0 16px 30px rgba(77, 98, 145, 0.09);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 16px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(194, 214, 250, 0.58);
+    box-shadow: 0 16px 30px rgba(77, 98, 145, 0.09);
 }
 
 .plot-editor-add-strip__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  border: 1px solid var(--plot-type-border, rgba(194, 214, 250, 0.7));
-  background: var(--plot-type-bg, #f2f6fe);
-  color: var(--plot-type-text, #4a679f);
-  padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    border-radius: 999px;
+    border: 1px solid var(--plot-type-border, rgba(194, 214, 250, 0.7));
+    background: var(--plot-type-bg, #f2f6fe);
+    color: var(--plot-type-text, #4a679f);
+    padding: 8px 12px;
   box-shadow: 0 8px 18px rgba(109, 134, 193, 0.06);
 }
 
